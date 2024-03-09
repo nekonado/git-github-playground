@@ -1,15 +1,9 @@
 # Sample
 
-initial commit
+commit feature3 1
+commit feature3 2 - edit
+commit feature3 3
 
-add 1
-add 2
-add 3
-
-test1
-test2
-test3
-
-add 1
-add 3
-add 2
+commit feature3 4
+commit feature3 5
+commit feature3 6
