@@ -1,15 +1,1 @@
 # Sample
-
-initial commit
-
-add 1
-add 2
-add 3
-
-test1
-test2
-test3
-
-add 1
-add 3
-add 2
