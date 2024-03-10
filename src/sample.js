@@ -1,1 +1,3 @@
-function echo(text) {}
+function echo(text) {
+  return text;
+}
