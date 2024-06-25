@@ -1,5 +1,6 @@
 function echo(text) {
   // feature e
+  // feature f
   return text;
 }
 
