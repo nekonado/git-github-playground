@@ -7,5 +7,6 @@ function echo2(text) {
 }
 
 function echo3(text) {
+  // feature a
   return text;
 }
