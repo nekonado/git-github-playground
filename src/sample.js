@@ -3,6 +3,7 @@ function echo(text) {
 }
 
 function echo2(text) {
+  // feature c
   return text;
 }
 
