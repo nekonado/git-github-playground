@@ -5,7 +5,6 @@ function echo(text) {
 }
 
 function echo2(text) {
-  // feature c
   // feature d
   return text;
 }
