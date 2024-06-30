@@ -12,6 +12,5 @@ function echo2(text) {
 
 function echo3(text) {
   // feature a
-  // feature b
   return text;
 }
