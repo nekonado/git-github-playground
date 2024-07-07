@@ -27,11 +27,11 @@ jobs:
           reviewers=${LABELS_TO_REVIEWERS[$label]}
 
           if [ -n "$reviewers" ]; then
-            # レビュアーリストをJSON形式の配列に変換
-            reviewers_json=$(echo $reviewers | jq -Rc '[split(",")[] | {reviewer: .}]')
+            # レビュアーリストをカンマで分割して配列にする
+            IFS=',' read -ra reviewers_array <<< "$reviewers"
 
             # JSON データを生成する
-            json_data=$(jq -n --argjson reviewers "$reviewers_json" '{"reviewers": $reviewers}')
+            json_data="{\"reviewers\":$(jq -n --argjson reviewers_array "${reviewers_array[*]}" '$reviewers_array')}"
 
             # デバッグ用に JSON データをログに出力
             echo "JSON Data: $json_data"
