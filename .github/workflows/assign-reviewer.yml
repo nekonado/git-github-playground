@@ -31,7 +31,7 @@ jobs:
             IFS=',' read -ra reviewers_array <<< "$reviewers"
 
             # JSON データを生成する
-            json_data="{\"reviewers\":$(jq -n --argjson reviewers_array "${reviewers_array[*]}" '$reviewers_array')}"
+            json_data="{\"reviewers\": $(jq -n --argjson reviewers_array "${reviewers_array[@]}" '[$reviewers_array[]]')}"
 
             # デバッグ用に JSON データをログに出力
             echo "JSON Data: $json_data"
