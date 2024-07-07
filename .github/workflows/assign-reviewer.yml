@@ -5,41 +5,45 @@ on:
     types:
       - labeled
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   assign-reviewer:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v3
+    - name: Check out the repository
+      uses: actions/checkout@v3
 
-      - name: Set Reviewer
-        run: |
-          # ラベルとレビュアーのマッピングを定義
-          declare -A LABELS_TO_REVIEWERS=(
-            ["feat"]="nekonado"
-            ["bug"]="nekonado,nekonadocat"
-          )
+    - name: Set Reviewer
+      run: |
+        # ラベルとレビュアーのマッピングを定義
+        declare -A LABELS_TO_REVIEWERS=(
+          ["feat"]="nekonado"
+          ["bug"]="nekonado,nekonadocat"
+        )
 
-          # 現在のプルリクエストに追加されたラベルを取得
-          label="${{ github.event.label.name }}"
-          # ラベルに対応するレビュアーリストを取得
-          reviewers=${LABELS_TO_REVIEWERS[$label]}
+        # 現在のプルリクエストに追加されたラベルを取得
+        label="${{ github.event.label.name }}"
+        # ラベルに対応するレビュアーリストを取得
+        reviewers=${LABELS_TO_REVIEWERS[$label]}
 
-          # レビュアーが存在する場合にのみ処理を実行
-          if [ -n "$reviewers" ]; then
-            # レビュアーリストをJSON形式の配列に変換
-            reviewers_json=$(echo $reviewers | awk -v RS=, -v ORS=, '{ print "\"" $0 "\"" }' | sed 's/,$//')
+        # レビュアーが存在する場合にのみ処理を実行
+        if [ -n "$reviewers" ]; then
+          # レビュアーリストをJSON形式の配列に変換
+          reviewers_json=$(echo $reviewers | awk -v RS=, -v ORS=, '{ print "\"" $0 "\"" }' | sed 's/,$//')
 
-            # GitHub APIを使用してレビュアーを設定し、レスポンスを出力
-            response=$(curl -s -w "%{http_code}" -o response.txt -X POST \
-              -H "Accept: application/vnd.github.v3+json" \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers \
-              -d "{\"reviewers\":[$reviewers_json]}")
+          # GitHub APIを使用してレビュアーを設定し、レスポンスを出力
+          response=$(curl -s -w "%{http_code}" -o response.txt -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers \
+            -d "{\"reviewers\":[$reviewers_json]}")
 
-            http_code=$(tail -n1 response.txt)
-            body=$(head -n-1 response.txt)
+          http_code=$(tail -n1 response.txt)
+          body=$(head -n-1 response.txt)
 
-            echo "HTTP Status Code: $http_code"
-            echo "Response Body: $body"
-          fi
+          echo "HTTP Status Code: $http_code"
+          echo "Response Body: $body"
+        fi
