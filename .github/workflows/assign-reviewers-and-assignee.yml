@@ -1,4 +1,4 @@
-name: Assign Reviewers and Assignee
+name: Assign Reviewers and Assignee based on Label
 
 on:
   pull_request:
@@ -18,46 +18,38 @@ jobs:
 
       - name: Set Reviewers and Assignee based on Label
         run: |
+          # ラベルと対応するレビュアーのマッピングを定義
           declare -A LABELS_TO_REVIEWERS=(
             ["feat"]="nekonado,nekonadocat"
             ["bug"]="nekonado,nekonadocat"
           )
 
+          # 現在のプルリクエストに追加されたラベルを取得
           label="${{ github.event.label.name }}"
+
+          # ラベルに基づいて対応するレビュアーを取得
           reviewers=${LABELS_TO_REVIEWERS[$label]}
 
-          author_username="${{ github.event.pull_request.user.login }}"
+          # プルリクエストの作成者のユーザー名を取得
+          pr_author="${{ github.event.pull_request.user.login }}"
 
-          # Set assignee to the author of the pull request
-          assignee_json=$(jq -n --arg assignee "$author_username" '{assignees: [$assignee]}')
-          assignee_response=$(curl -s -o /dev/null -w "%{http_code}\n" -X POST \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/assignees" \
-            -d "$assignee_json")
-
-          if [ "$assignee_response" -ge 200 ] && [ "$assignee_response" -lt 300 ]; then
-            echo "Assignee set successfully: $author_username"
-          else
-            echo "Failed to set assignee. HTTP Status Code: $assignee_response"
-            exit 1
-          fi
-
-          # Set reviewers based on the label
           if [ -n "$reviewers" ]; then
+            # カンマ区切りのレビュアーリストを配列に変換
             IFS=',' read -ra reviewers_array <<< "$reviewers"
 
+            # 作成者を除外したレビュアーリストを作成
             filtered_reviewers=()
             for reviewer in "${reviewers_array[@]}"; do
-              if [ "$reviewer" != "$author_username" ]; then
+              if [ "$reviewer" != "$pr_author" ]; then
                 filtered_reviewers+=("$reviewer")
               fi
             done
 
             if [ ${#filtered_reviewers[@]} -gt 0 ]; then
+              # レビュアーリストをJSON形式に変換
               reviewers_json=$(printf '%s\n' "${filtered_reviewers[@]}" | jq -c -R 'split("\n") | map(select(length > 0))')
 
+              # GitHub APIを使ってレビュアーを設定
               response=$(curl -s -o /dev/null -w "%{http_code}\n" -X POST \
                 -H "Accept: application/vnd.github.v3+json" \
                 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
@@ -74,4 +66,19 @@ jobs:
             else
               echo "No valid reviewers found after filtering."
             fi
+          fi
+
+          # プルリクエストの作成者をアサイン
+          assignee_response=$(curl -s -o /dev/null -w "%{http_code}\n" -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/assignees" \
+            -d "{\"assignees\": [\"$pr_author\"]}")
+
+          if [ "$assignee_response" -ge 200 ] && [ "$assignee_response" -lt 300 ]; then
+            echo "Assignee set successfully."
+          else
+            echo "Failed to set assignee. HTTP Status Code: $assignee_response"
+            exit 1
           fi
