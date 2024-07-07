@@ -18,8 +18,9 @@ jobs:
 
       - name: Set Reviewer
         run: |
+          # ラベルと対応するレビュアを定義
           declare -A LABELS_TO_REVIEWERS=(
-            ["feat"]="nekonado"
+            ["feat"]="nekonadocat"
             ["bug"]="nekonado,nekonadocat"
           )
 
@@ -27,23 +28,15 @@ jobs:
           reviewers=${LABELS_TO_REVIEWERS[$label]}
 
           if [ -n "$reviewers" ]; then
-            # レビュアーリストをカンマで分割して配列にする
-            IFS=',' read -ra reviewers_array <<< "$reviewers"
-
-            # JSON データを生成する
-            json_data="{\"reviewers\": $(jq -n --argjson reviewers_array "${reviewers_array[@]}" '[$reviewers_array[]]')}"
-
-            # デバッグ用に JSON データをログに出力
-            echo "JSON Data: $json_data"
-
-            # GitHub API を呼び出してレビュアーを設定
-            response=$(curl -s -w "%{http_code}" -o response.txt -X POST \
+            # GitHub API を呼び出してレビュアを設定
+            curl -s -w "%{http_code}" -o response.txt -X POST \
               -H "Accept: application/vnd.github.v3+json" \
               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Content-Type: application/json" \
-              https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers \
-              -d "$json_data")
+              "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers" \
+              -d "{\"reviewers\": [\"$reviewers\"]}"
 
+            # API のレスポンスを取得
             http_code=$(tail -n1 response.txt)
             body=$(head -n-1 response.txt)
 
