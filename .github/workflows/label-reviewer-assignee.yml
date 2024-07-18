@@ -17,79 +17,80 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Set Label, Reviewer, and Assignee based on PR Author
-        run: |
-          # 関数定義: GitHub APIへのリクエスト
-          github_api_request() {
-            local endpoint=$1
-            local data=$2
-            local response=$(curl -s -o response.txt -w "%{http_code}" -X POST \
-              -H "Accept: application/vnd.github.v3+json" \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              "$endpoint" \
-              -d "$data")
+        run: whoami
+        # run: |
+        #   # 関数定義: GitHub APIへのリクエスト
+        #   github_api_request() {
+        #     local endpoint=$1
+        #     local data=$2
+        #     local response=$(curl -s -o response.txt -w "%{http_code}" -X POST \
+        #       -H "Accept: application/vnd.github.v3+json" \
+        #       -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+        #       -H "Content-Type: application/json" \
+        #       "$endpoint" \
+        #       -d "$data")
 
-            if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
-              echo "Request to $endpoint successful."
-            else
-              echo "Request to $endpoint failed. HTTP Status Code: $response"
-              cat response.txt
-              exit 1
-            fi
-          }
+        #     if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
+        #       echo "Request to $endpoint successful."
+        #     else
+        #       echo "Request to $endpoint failed. HTTP Status Code: $response"
+        #       cat response.txt
+        #       exit 1
+        #     fi
+        #   }
 
-          # PR作成者に基づいてラベルを決定
-          declare -A AUTHOR_TO_LABELS=(
-            ["nekonado"]="feat"
-            ["nekonadocat"]="bug"
-          )
+        #   # PR作成者に基づいてラベルを決定
+        #   declare -A AUTHOR_TO_LABELS=(
+        #     ["nekonado"]="feat"
+        #     ["nekonadocat"]="bug"
+        #   )
 
-          pr_author="${{ github.event.pull_request.user.login }}"
-          label="${AUTHOR_TO_LABELS[$pr_author]}"
+        #   pr_author="${{ github.event.pull_request.user.login }}"
+        #   label="${AUTHOR_TO_LABELS[$pr_author]}"
 
-          if [ -n "$label" ]; then
-            # PRにラベルを追加
-            github_api_request \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels" \
-              "{\"labels\": [\"$label\"]}"
+        #   if [ -n "$label" ]; then
+        #     # PRにラベルを追加
+        #     github_api_request \
+        #       "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels" \
+        #       "{\"labels\": [\"$label\"]}"
 
-            # ラベルと対応するレビュアーのマッピングを定義
-            declare -A LABELS_TO_REVIEWERS=(
-              ["feat"]="nekonado,nekonadocat"
-              ["bug"]="nekonado,nekonadocat"
-            )
+        #     # ラベルと対応するレビュアーのマッピングを定義
+        #     declare -A LABELS_TO_REVIEWERS=(
+        #       ["feat"]="nekonado,nekonadocat"
+        #       ["bug"]="nekonado,nekonadocat"
+        #     )
 
-            reviewers=${LABELS_TO_REVIEWERS[$label]}
+        #     reviewers=${LABELS_TO_REVIEWERS[$label]}
 
-            if [ -n "$reviewers" ]; then
-              # カンマ区切りのレビュアーリストを配列に変換
-              IFS=',' read -ra reviewers_array <<< "$reviewers"
+        #     if [ -n "$reviewers" ]; then
+        #       # カンマ区切りのレビュアーリストを配列に変換
+        #       IFS=',' read -ra reviewers_array <<< "$reviewers"
 
-              # 作成者を除外したレビュアーリストを作成
-              filtered_reviewers=()
-              for reviewer in "${reviewers_array[@]}"; do
-                if [ "$reviewer" != "$pr_author" ]; then
-                  filtered_reviewers+=("$reviewer")
-                fi
-              done
+        #       # 作成者を除外したレビュアーリストを作成
+        #       filtered_reviewers=()
+        #       for reviewer in "${reviewers_array[@]}"; do
+        #         if [ "$reviewer" != "$pr_author" ]; then
+        #           filtered_reviewers+=("$reviewer")
+        #         fi
+        #       done
 
-              if [ ${#filtered_reviewers[@]} -gt 0 ]; then
-                # レビュアーリストをJSON形式に変換
-                reviewers_json=$(printf '%s\n' "${filtered_reviewers[@]}" | jq -c -R 'split("\n") | map(select(length > 0))')
+        #       if [ ${#filtered_reviewers[@]} -gt 0 ]; then
+        #         # レビュアーリストをJSON形式に変換
+        #         reviewers_json=$(printf '%s\n' "${filtered_reviewers[@]}" | jq -c -R 'split("\n") | map(select(length > 0))')
 
-                # レビュアーを設定
-                github_api_request \
-                  "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers" \
-                  "{\"reviewers\": $reviewers_json}"
-              else
-                echo "No valid reviewers found after filtering."
-              fi
-            fi
+        #         # レビュアーを設定
+        #         github_api_request \
+        #           "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers" \
+        #           "{\"reviewers\": $reviewers_json}"
+        #       else
+        #         echo "No valid reviewers found after filtering."
+        #       fi
+        #     fi
 
-            # プルリクエストの作成者をアサイン
-            github_api_request \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/assignees" \
-              "{\"assignees\": [\"$pr_author\"]}"
-          else
-            echo "No label found for PR author: $pr_author"
-          fi
+        #     # プルリクエストの作成者をアサイン
+        #     github_api_request \
+        #       "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/assignees" \
+        #       "{\"assignees\": [\"$pr_author\"]}"
+        #   else
+        #     echo "No label found for PR author: $pr_author"
+        #   fi
